@@ -1,4 +1,6 @@
 from abc import ABC,abstractmethod
+from datetime import date,timedelta,datetime
+from database import Availability
 class Room(ABC):
     def __init__(self,room_no,room_type,floor):
         self.room_no=room_no
@@ -17,7 +19,8 @@ class StandardRoom(Room):
     def __init__(self,room_no,room_type,floor):
         super().__init__(room_no,room_type,floor)
         self.base_price=2500
-        self.Available=True
+        self.Available=1
+        self.max_guests = 2
     def tariff(self):
         return self.base_price
     def guest_charges(self):
@@ -28,7 +31,8 @@ class DeluxeRoom(Room):
     def __init__(self,room_no,room_type,floor):
         super().__init__(room_no,room_type,floor)
         self.base_price=4000
-        self.Available=True
+        self.Available=1
+        self.max_guests = 3
     def tariff(self):
         return self.base_price
     def guest_charges(self,count):
@@ -41,7 +45,8 @@ class SuiteRoom(Room):
     def __init__(self,room_no,room_type,floor):
             super().__init__(room_no,room_type,floor)
             self.base_price=7500
-            self.Available=True
+            self.Available=1
+            self.max_guests = 4
     def tariff(self):
         return self.base_price
     def guest_charges(self,count):
@@ -50,3 +55,18 @@ class SuiteRoom(Room):
         return 0
     def breakfast(self,count):
         return 0
+class Guest():
+    def __init__(self,name,mobile,email):
+        self.name=name
+        self.mobile=mobile
+        self.email=email
+class Bookings():
+    def __init__(self,check_in):
+        self.availability=0
+        self.check_in=check_in
+    def check_avaibility():
+        count=Availability()
+
+
+    
+    

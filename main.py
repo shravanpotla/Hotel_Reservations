@@ -1,13 +1,14 @@
 from database import create_tables, insert_customer
-from database import insert_room
-from models import StandardRoom, DeluxeRoom, SuiteRoom
+from database import insert_room,Availability
+from exceptions import room_Unavailable
+from database import allocate_room, insert_booking
+from datetime import datetime
+from models import StandardRoom, DeluxeRoom, SuiteRoom,Guest
 import csv
 import re
 create_tables()
 def validating():
-    Standard_Obj = []
-    DeluxeRoom_Obj = []
-    SuiteRoom_Obj = []
+    Room_Obj = []
     rooms = []
     room_no = []
     valid_data = []
@@ -33,24 +34,23 @@ def validating():
                 continue
             if room["room_type"].lower() == "standard":
                 obj = StandardRoom(room["room_no"], room["room_type"], room["floor"])
-                Standard_Obj.append(obj)
+                Room_Obj.append(obj)
             elif room["room_type"].lower() == "deluxe":
                 obj = DeluxeRoom(room["room_no"], room["room_type"], room["floor"])
-                DeluxeRoom_Obj.append(obj)
+                Room_Obj.append(obj)
             elif room["room_type"].lower() == "suite":
                 obj = SuiteRoom(room["room_no"], room["room_type"], room["floor"])
-                SuiteRoom_Obj.append(obj)
+                Room_Obj.append(obj)
             valid_data.append(room)
             room_no.append(room["room_no"])
-            insert_room(
-                int(room["room_no"]),
-                room["room_type"],
-                int(room["floor"])
-            )
 
-    return valid_data, Standard_Obj, DeluxeRoom_Obj, SuiteRoom_Obj
-valid_data, sta_obj, d_obj, sui_obj = validating()
+        for obj in Room_Obj:
+            insert_room(obj.room_no,obj.room_type,obj.floor,obj.Available)
+
+    return valid_data, Room_Obj
+valid_data, room_obj = validating()
 Number_of_customers = int(input("Enter no of customers: "))
+Guests=[]
 for _ in range(Number_of_customers):
     while True:
         guest_name = input("Enter guest name: ")
@@ -66,10 +66,22 @@ for _ in range(Number_of_customers):
         break
     while True:
         email = input("Enter email: ")
-        pattern = r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$'
+        pattern = r'^[a-zA-Z0-9.]+@[a-z]+\.[a-zA-Z]{2,}$'
         if not re.match(pattern, email):
             print("Enter valid email.")
             continue
         break
-    insert_customer(mobile_number, guest_name, email)
+    guest=Guest(guest_name,mobile_number,email)
+    Guests.append(guest)
+g=Guests[0]
+insert_customer(g.mobile, g.name, g.email)
 print("Customer details inserted successfully.")
+
+while True:
+    room_type = input("Enter type of room: ").lower().strip()
+    if room_type in ("standard", "deluxe", "suite"):
+        count = Availability(room_type)
+        print(count)
+        break
+    else:
+        print("Enter valid room type.")
