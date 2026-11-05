@@ -1,6 +1,5 @@
 from abc import ABC,abstractmethod
 from datetime import date,timedelta,datetime
-from database import Availability
 class Room(ABC):
     def __init__(self,room_no,room_type,floor):
         self.room_no=room_no
@@ -23,7 +22,7 @@ class StandardRoom(Room):
         self.max_guests = 2
     def tariff(self):
         return self.base_price
-    def guest_charges(self):
+    def guest_charges(self,count):
         return 0
     def breakfast(self,count):
         return count*350
@@ -61,11 +60,22 @@ class Guest():
         self.mobile=mobile
         self.email=email
 class Bookings():
-    def __init__(self,check_in):
-        self.availability=0
-        self.check_in=check_in
-    def check_avaibility():
-        count=Availability()
+    def __init__(self,guest,room,check_in,check_out,guests):
+        if guests<1 or guests>room.max_guests:
+            raise ValueError("No of guests are not valid.")
+        nights=(check_out-check_in).days
+        if nights<1 or nights>30:
+            raise ValueError("Cannot stay more than 30 days or less than 1 day.")
+        self.guest = guest
+        self.room = room
+        self.check_in_date = check_in
+        self.check_out_date = check_out
+        self.guests = guests
+        self._status = "CONFIRMED"
+        self.booking_id = None
+
+        
+    
 
 
     

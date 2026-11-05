@@ -78,7 +78,7 @@ def allocate_room(room_type, check_in, check_out):
             AND BOOKINGS.Check_In < ?
             AND BOOKINGS.Check_Out > ?
         )
-        ORDER BY room_no ASC
+        ORDER BY room_no
         LIMIT 1
     """, (room_type, check_out, check_in))
 
@@ -96,3 +96,7 @@ def insert_booking(mobile, room_no, check_in, check_out, guests):
     """, (mobile, room_no, check_in, check_out, guests, "CONFIRMED"))
     conn.commit()
     return cursor.lastrowid
+def guest_history():
+    cursor.execute(
+        """SELECT * from CUSTOMERS"""
+    )
