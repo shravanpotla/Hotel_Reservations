@@ -1,11 +1,8 @@
-from exceptions import room_Unavailable
 import sqlite3
+from exceptions import room_Unavailable
 conn = sqlite3.connect("Stay_Easy.db")
+conn.execute("PRAGMA foreign_keys = ON")
 cursor = conn.cursor()
-cursor.execute("Select * from CUSTOMERS")
-for i in cursor.fetchall():
-    print(i)
-# cursor.execute("DROP TABLE CUSTOMERS")
 def create_tables():
     cursor.execute("""
     CREATE TABLE IF NOT EXISTS ROOMS(
@@ -24,32 +21,6 @@ def create_tables():
     )
     """)
     conn.commit()
-def insert_room(room_no, room_type, floor,availability):
-    cursor.execute(
-        "INSERT OR IGNORE INTO ROOMS VALUES(?,?,?,?)",
-        (room_no, room_type, floor,availability)
-    )
-    conn.commit()
-def insert_customer(mobile, name, email):
-    Existing=cursor.execute("select Mobile from CUSTOMERS where Mobile=?",(mobile,)).fetchone()
-    if Existing:
-        cursor.execute(
-            """UPDATE CUSTOMERS SET Visits=Visits+1 WHERE Mobile=?""",(mobile,)
-        )
-    else:
-        cursor.execute(
-            "INSERT INTO CUSTOMERS VALUES(?,?,?,?)",
-            (mobile, name, email,1)
-        )
-    conn.commit()
-def Availability(type):
-    cursor.execute("""
-                    SELECT COUNT(room_no)
-                    FROM ROOMS
-                    WHERE room_type = ? AND Available = 1;""",(type.capitalize(),)
-                )
-    count=cursor.fetchone()[0]
-    return count
 def create_booking_table():
     cursor.execute("""
     CREATE TABLE IF NOT EXISTS BOOKINGS(
@@ -65,15 +36,61 @@ def create_booking_table():
     )
     """)
     conn.commit()
+def insert_room(room_no, room_type, floor, availability):
+    cursor.execute(
+        "INSERT OR IGNORE INTO ROOMS VALUES(?,?,?,?)",
+        (int(room_no), room_type.capitalize(), int(floor), availability)
+    )
+    conn.commit()
+def insert_customer(mobile, name, email):
+    existing = cursor.execute(
+        "SELECT Mobile FROM CUSTOMERS WHERE Mobile=?", (mobile,)
+    ).fetchone()
+
+    if existing:
+        cursor.execute(
+            "UPDATE CUSTOMERS SET Name=?, Email=? WHERE Mobile=?",
+            (name, email, mobile)
+        )
+    else:
+        cursor.execute(
+            "INSERT INTO CUSTOMERS VALUES(?,?,?,?)",
+            (mobile, name, email, 0)
+        )
+    conn.commit()
+def Availability(room_type, check_in=None, check_out=None):
+    if check_in is None or check_out is None:
+        cursor.execute("""
+            SELECT COUNT(room_no)
+            FROM ROOMS
+            WHERE LOWER(room_type)=LOWER(?) AND Available=1
+        """, (room_type,))
+    else:
+        cursor.execute("""
+            SELECT COUNT(room_no)
+            FROM ROOMS
+            WHERE LOWER(room_type)=LOWER(?)
+            AND Available=1
+            AND NOT EXISTS (
+                SELECT 1
+                FROM BOOKINGS
+                WHERE BOOKINGS.Room_No=ROOMS.room_no
+                AND BOOKINGS.Status IN ('CONFIRMED', 'CHECKED_IN')
+                AND BOOKINGS.Check_In < ?
+                AND BOOKINGS.Check_Out > ?
+            )
+        """, (room_type, check_out, check_in))
+    return cursor.fetchone()[0]
 def allocate_room(room_type, check_in, check_out):
     cursor.execute("""
         SELECT room_no
         FROM ROOMS
-        WHERE LOWER(room_type) = ?
+        WHERE LOWER(room_type)=LOWER(?)
+        AND Available=1
         AND NOT EXISTS (
             SELECT 1
             FROM BOOKINGS
-            WHERE BOOKINGS.Room_No = ROOMS.room_no
+            WHERE BOOKINGS.Room_No=ROOMS.room_no
             AND BOOKINGS.Status IN ('CONFIRMED', 'CHECKED_IN')
             AND BOOKINGS.Check_In < ?
             AND BOOKINGS.Check_Out > ?
@@ -81,22 +98,70 @@ def allocate_room(room_type, check_in, check_out):
         ORDER BY room_no
         LIMIT 1
     """, (room_type, check_out, check_in))
-
     room = cursor.fetchone()
-
     if room is None:
-        raise room_Unavailable(f"No {room_type} rooms available for these dates.")
-
+        raise room_Unavailable(
+            f"No {room_type} rooms available for these dates."
+        )
     return room[0]
 def insert_booking(mobile, room_no, check_in, check_out, guests):
+    try:
+        cursor.execute("""
+            INSERT INTO BOOKINGS
+            (Mobile, Room_No, Check_In, Check_Out, Guests, Status)
+            VALUES (?, ?, ?, ?, ?, 'CONFIRMED')
+        """, (mobile, room_no, check_in, check_out, guests))
+        
+        conn.commit()
+
+        return cursor.lastrowid
+    except Exception:
+        conn.rollback()
+        raise
+def guest_history(mobile):
     cursor.execute("""
-        INSERT INTO BOOKINGS
-        (Mobile, Room_No, Check_In, Check_Out, Guests, Status)
-        VALUES (?, ?, ?, ?, ?, ?)
-    """, (mobile, room_no, check_in, check_out, guests, "CONFIRMED"))
-    conn.commit()
-    return cursor.lastrowid
-def guest_history():
+        SELECT Booking_ID, Room_No, Check_In, Check_Out, Guests, Status
+        FROM BOOKINGS
+        WHERE Mobile=?
+        ORDER BY Booking_ID
+    """, (mobile,))
+    records = cursor.fetchall()
+    if not records:
+        print("No booking history found.")
+    else:
+        for record in records:
+            print(record)
+def check_in_data(booking_id):
     cursor.execute(
-        """SELECT * from CUSTOMERS"""
+        """SELECT Status from BOOKINGS WHERE Booking_id=?""",
+        (booking_id,)
     )
+    status=cursor.fetchone()
+    return status
+def check_in_update(booking_id):
+    cursor.execute(
+        """UPDATE BOOKINGS SET Status=? Where Booking_id=?""",("CHECKED-IN",booking_id)
+    )
+    conn.commit()
+    if cursor.rowcount == 0:
+        print("Invalid Booking ID.")
+    else:
+        print("Check-in successful!")
+def check_out_data(booking_id):
+    cursor.execute(
+            """SELECT Status from BOOKINGS WHERE Booking_id=?""",
+            (booking_id,)
+        )
+    status=cursor.fetchone()
+    return status
+def check_out_update(booking_id):
+    cursor.execute(
+            """UPDATE BOOKINGS SET Status=? Where Booking_id=?""",("CHECKED-OUT",booking_id)
+        )
+    conn.commit()
+    if cursor.rowcount == 0:
+        print("Invalid Booking ID.")
+    else:
+        print("Check-in successful!")
+def close_connection():
+    conn.close()

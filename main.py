@@ -1,4 +1,4 @@
-from database import create_tables, insert_customer
+from database import create_tables, insert_customer, create_booking_table,check_in_data,check_in_update,check_out_data,check_out_update
 from database import insert_room,Availability
 from exceptions import room_Unavailable
 from database import allocate_room, insert_booking,guest_history
@@ -7,6 +7,36 @@ from models import StandardRoom, DeluxeRoom, SuiteRoom,Guest
 import csv
 import re
 create_tables()
+create_booking_table()
+today=datetime.now().date()
+limit={'standard':2,'deluxe':3,'suite':4}
+def check_dates(room_type):
+    while True:
+        while True:
+            check_in_date = input("Enter Check-in date (DD-MM-YYYY): ")
+            try:
+                check_in_date = datetime.strptime(check_in_date, "%d-%m-%Y").date()
+                break
+            except ValueError:
+                print("Invalid date format. Enter DD-MM-YYYY.")
+        while True:
+            check_out_date = input("Enter Check-out date (DD-MM-YYYY): ")
+            try:
+                check_out_date = datetime.strptime(check_out_date, "%d-%m-%Y").date()
+                break
+            except ValueError:
+                print("Invalid date format. Enter DD-MM-YYYY.")
+        if check_in_date<today:
+            print("Check_in must be after present day.")
+            continue
+        if (check_in_date-today).days>180:
+            print("Check in date cannot be after 180 days.")
+            continue
+        total_stay=(check_out_date-check_in_date).days
+        if 1>total_stay or total_stay>30:
+            print("Guests can only book for 30 days.")
+            continue
+        return check_in_date, check_out_date
 def validating():
     Room_Obj = []
     rooms = []
@@ -34,13 +64,11 @@ def validating():
                 continue
             if room["room_type"].lower() == "standard":
                 obj = StandardRoom(room["room_no"], room["room_type"], room["floor"])
-                Room_Obj.append(obj)
             elif room["room_type"].lower() == "deluxe":
                 obj = DeluxeRoom(room["room_no"], room["room_type"], room["floor"])
-                Room_Obj.append(obj)
             elif room["room_type"].lower() == "suite":
                 obj = SuiteRoom(room["room_no"], room["room_type"], room["floor"])
-                Room_Obj.append(obj)
+            Room_Obj.append(obj)
             valid_data.append(room)
             room_no.append(room["room_no"])
 
@@ -49,8 +77,21 @@ def validating():
 
     return valid_data, Room_Obj
 valid_data, room_obj = validating()
-def registering():
-    Number_of_customers = int(input("Enter no of customers: "))
+def search_availability():
+    while True:
+        room_type = input("Enter room type (Standard/Deluxe/Suite): ").strip().lower()
+        if room_type in limit:
+            break
+        print("Enter a valid room type.")
+    dates = check_dates(room_type)
+    if dates is None:
+        return
+    check_in, check_out = dates
+    count = Availability(room_type, check_in, check_out )
+    print("Available rooms:", count)
+    if count == 0:
+        print("No rooms available for the selected dates.")
+def registering(Number_of_customers):
     Guests=[]
     for _ in range(Number_of_customers):
         while True:
@@ -67,7 +108,7 @@ def registering():
             break
         while True:
             email = input("Enter email: ")
-            pattern = r'^[a-zA-Z0-9.]+@[a-z]+\.[a-zA-Z]{2,}$'
+            pattern = r'^[a-zA-Z0-9]+@[a-z]+\.[a-zA-Z]{2,}$'
             if not re.match(pattern, email):
                 print("Enter valid email.")
                 continue
@@ -76,41 +117,74 @@ def registering():
         Guests.append(guest)
     g=Guests[0]
     insert_customer(g.mobile, g.name, g.email)
-    print("Customer details inserted successfully.")
-while True:
-    room_type = input("Enter type of room: ").lower().strip()
-    if room_type in ("standard", "deluxe", "suite"):
-        count = Availability(room_type)
-        print(count)
-        break
-    else:
-        print("Enter valid room type.")
-today=datetime.now().strftime("%d-%m-%Y")
-def check_in():
+    print("Customer details registered successfully.")
+    return g
+today=datetime.now().date()
+def check_in(booking_id):
+    status=check_in_data(booking_id)
+    if not status:
+        print("No bookings for this mobile number.")
+        return
+    if status[0]!="CONFIRMED":
+        print("Please book rooms for confirmation.")
+        return
+    check_in_update(booking_id)
+def check_out(booking_id):
+    status=check_out_data(booking_id)
+    if not status:
+        print("No bookings for this booking id.")
+        return
+    if status[0]!="CHECKED-IN":
+        print("Please book rooms for confirmation.")
+        return
+    check_out_update(booking_id)
+def booking():
     while True:
-        check_in=input("Enter check in date in DD-MM-YYYY format:")
-        if not datetime.strptime(check_in,"%d-%m-%Y"):
-            print("Enter date in the given format.")
-        if check_in < today:
-            print("Enter check in date in future or present.")
-        if (check_in-today).days>180:
-            print("Check in date cannot be after 180 days.")
+        room_type=input("Enter room type:").lower()
+        if room_type not in ("standard","deluxe","suite"):
+            print("Enter valid room type.")
         else:
             break
-    return check_in
-def check_out():
+    dates=check_dates(room_type)
+    if dates is None:
+        return
+    check_in_date,check_out_date=dates
     while True:
-        check_out=input("Enter check in date in DD-MM-YYYY format:")
-        if not datetime.strptime(check_out,"%d-%m-%Y"):
-            print("Enter date in the given format.")
-        if check_in()>check_out:
-            print("Enter valid dates.")
-        else:
-            break
+        try:
+            guests=int(input("Enter number of guests:"))
+            if guests>=1:
+                break
+            print("Atleast one guest is required.")
+        except ValueError:
+            print("Enter valid whole number.")
+    if guests>limit[room_type]:
+        print("Room limit exceeded.")
+    count=Availability(room_type,check_in_date,check_in_date)
+    if count==0:
+        print("The rooms in room_type that you searched are not present.")
+        for type,Max_limit in limit:
+            if type!=room_type and Max_limit>=guests:
+                limits=Availability(type,check_in_date,check_out_date)
+                if limits>0:
+                    print(limits)
+        return
+    try:
+        registered_guest=registering(guests)
+        room_no=allocate_room(room_type,check_in_date,check_out_date)
+        last_id=insert_booking(registered_guest.mobile,room_no,check_in_date,check_out_date,guests)
+        booking_id=f"BK{last_id:04d}"
+        print("Booking successful!")
+        print("Room number:",room_no)
+        print("Booking ID:",booking_id)
+    except room_Unavailable as error:
+        print(error)
+    except ValueError as error:
+        print(error)
+    return booking_id
 while True:
     print("""
             1.search availability
-            2.create booking
+            2.Registering
             3.check in
             4.check out
             5.cancel booking
@@ -124,19 +198,22 @@ while True:
     choice=input("Enter your choice:")
  
     if choice=="1":
-        Availability()
+        search_availability()
     elif choice=="2":
-        registering()
+        booking()
     elif choice=="3":
-        check_in()
+        booking_id=input("Enter booking id:")
+        check_in(booking_id)
     elif choice=="4":
-        check_out()
+        booking_id=input("Enter booking id:")
+        check_out(booking_id)
     elif choice=="5":
         pass
     elif choice=="6":
         pass
     elif choice=="7":
-        guest_history()
+        mobile=input("Enter the mobile number that user registered with:")
+        guest_history(mobile)
     elif choice=="8":
         pass
     elif choice=="9":
