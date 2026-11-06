@@ -1,9 +1,10 @@
 from database import create_tables, insert_customer, create_booking_table,check_in_data,check_in_update,check_out_data,check_out_update
-from database import insert_room,Availability
+from database import insert_room,Availability,cancel_booking,Number_of_visits
+from pricing import Pricing
 from exceptions import room_Unavailable
 from database import allocate_room, insert_booking,guest_history
 from datetime import datetime
-from models import StandardRoom, DeluxeRoom, SuiteRoom,Guest
+from models import StandardRoom, DeluxeRoom, SuiteRoom,Guest,Bookings
 import csv
 import re
 create_tables()
@@ -152,35 +153,50 @@ def booking():
     while True:
         try:
             guests=int(input("Enter number of guests:"))
-            if guests>=1:
-                break
-            print("Atleast one guest is required.")
+            if guests<1:
+                print("Atleast one guest is required.")
+                continue
+            if guests>limit[room_type]:
+                print("Room limit exceeded.")
+                continue
+            break
         except ValueError:
             print("Enter valid whole number.")
-    if guests>limit[room_type]:
-        print("Room limit exceeded.")
-    count=Availability(room_type,check_in_date,check_in_date)
+   
+    count=Availability(room_type,check_in_date,check_out_date)
     if count==0:
         print("The rooms in room_type that you searched are not present.")
-        for type,Max_limit in limit:
+        for type,Max_limit in limit.items():
             if type!=room_type and Max_limit>=guests:
                 limits=Availability(type,check_in_date,check_out_date)
                 if limits>0:
                     print(limits)
-        return
+        return None
     try:
-        registered_guest=registering(guests)
+        registered_guest=registering(1)
         room_no=allocate_room(room_type,check_in_date,check_out_date)
-        last_id=insert_booking(registered_guest.mobile,room_no,check_in_date,check_out_date,guests)
-        booking_id=f"BK{last_id:04d}"
-        print("Booking successful!")
-        print("Room number:",room_no)
-        print("Booking ID:",booking_id)
     except room_Unavailable as error:
         print(error)
     except ValueError as error:
         print(error)
-    return booking_id
+    return (room_no, check_in_date, check_out_date, room_type, guests, registered_guest.mobile)
+def cancel_bookings():
+    booking_id=int(input("Enter booking id:"))
+    status=check_in_data(booking_id)
+    if not status:
+        print("status cannot be None.")
+        return
+    if status[0]!="CONFIRMED":
+        print("Cannot cancel after check-in or check-out.")
+        return
+    Status="CANCEL"
+    cancel_booking(Status)
+def booking_details(booking_id_no,room_number,checkin_date,checkout_date):
+    print("Booking Id:",booking_id_no)
+    print("Room Number:",room_number)
+    print("Check In Date:",checkin_date)
+    print("Check Out Date:",checkout_date)
+
 while True:
     print("""
             1.search availability
@@ -200,7 +216,30 @@ while True:
     if choice=="1":
         search_availability()
     elif choice=="2":
-        booking()
+        result=booking()
+        if result is not None:
+            room_number,checkin_date,checkout_date,room_type,guests,mobile=result
+            print("Check-in:", checkin_date, type(checkin_date))
+            print("Check-out:", checkout_date, type(checkout_date))
+            completed_stays=Number_of_visits(mobile)
+            want_breakfast=False
+            if room_type=="standard":
+                base_rate=2000
+                breakfast=input("Enter yes for breakfast or no:").lower()
+                if breakfast=="yes":
+                    want_breakfast=True
+        elif room_type=="deluxe":
+            base_rate=4000
+        else:
+            base_rate=7500
+        pricing=Pricing()
+        bill=pricing.calculate_room_charges(room_type,base_rate,checkin_date,checkout_date,guests,completed_stays,want_breakfast)
+        print(bill)
+        last_id = insert_booking(mobile, room_number, checkin_date, checkout_date, guests)
+
+        booking_id = f"BK{last_id:04d}"
+        print("Booking successful!")
+        print("Booking ID:", booking_id)
     elif choice=="3":
         booking_id=input("Enter booking id:")
         check_in(booking_id)
@@ -208,9 +247,10 @@ while True:
         booking_id=input("Enter booking id:")
         check_out(booking_id)
     elif choice=="5":
-        pass
+        booking_id=input("Enter booking id:")
+        cancel_bookings(booking_id)
     elif choice=="6":
-        pass
+        booking_details(booking_id_no,room_number,checkin_date,checkout_date)
     elif choice=="7":
         mobile=input("Enter the mobile number that user registered with:")
         guest_history(mobile)

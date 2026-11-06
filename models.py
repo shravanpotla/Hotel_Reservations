@@ -9,10 +9,10 @@ class Room(ABC):
     def tariff(self):
         pass
     @abstractmethod
-    def guest_charges(self):
+    def guest_charges(self,count):
         pass
     @abstractmethod
-    def breakfast(self):
+    def breakfast(self,count):
         pass
 class StandardRoom(Room):
     def __init__(self,room_no,room_type,floor):
