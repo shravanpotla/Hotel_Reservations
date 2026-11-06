@@ -32,6 +32,8 @@ def create_booking_table():
         Check_Out TEXT,
         Guests INT,
         Status TEXT,
+        Room_Type TEXT,
+        Final_Amount INT,
         FOREIGN KEY(Mobile) REFERENCES CUSTOMERS(Mobile),
         FOREIGN KEY(Room_No) REFERENCES ROOMS(room_no)
     )
@@ -105,13 +107,13 @@ def allocate_room(room_type, check_in, check_out):
             f"No {room_type} rooms available for these dates."
         )
     return room[0]
-def insert_booking(mobile, room_no, check_in, check_out, guests):
+def insert_booking(mobile, room_no, check_in, check_out, guests,room_type,final_amount):
     try:
         cursor.execute("""
             INSERT INTO BOOKINGS
-            (Mobile, Room_No, Check_In, Check_Out, Guests, Status)
-            VALUES (?, ?, ?, ?, ?, 'CONFIRMED')
-        """, (mobile, room_no, check_in, check_out, guests))
+            (Mobile, Room_No, Check_In, Check_Out, Guests, Status,Room_Type,Final_Amount)
+            VALUES (?, ?, ?, ?, ?, 'CONFIRMED',?,?)
+        """, (mobile, room_no, check_in, check_out, guests,room_type,final_amount))
         
         conn.commit()
 

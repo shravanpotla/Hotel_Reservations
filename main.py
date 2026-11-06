@@ -4,6 +4,8 @@ from pricing import Pricing
 from exceptions import room_Unavailable
 from database import allocate_room, insert_booking,guest_history
 from datetime import datetime
+from reports import ReportService
+report_service = ReportService()
 from models import StandardRoom, DeluxeRoom, SuiteRoom,Guest,Bookings
 import csv
 import re
@@ -196,7 +198,22 @@ def booking_details(booking_id_no,room_number,checkin_date,checkout_date):
     print("Room Number:",room_number)
     print("Check In Date:",checkin_date)
     print("Check Out Date:",checkout_date)
-
+def occupancy_report():
+    try:
+        checkin=input("Enter start date (DD-MM-YYYY):")
+        checkout=input("Enter end date date (DD-MM-YYYY)")
+        report_service.occupancy_report(valid_data,checkin,checkout)
+    except ValueError:
+        print("Invalid date format use DD-MM-YYYY")
+    except Exception as error:
+        print(error)
+       
+def revenue_report():
+    report_service.revenue_report()
+def export_data(booking_id):
+    filename=f"{booking_id}.txt"
+    with open(filename,"w") as file:
+        file.write()
 while True:
     print("""
             1.search availability
@@ -235,7 +252,7 @@ while True:
         pricing=Pricing()
         bill=pricing.calculate_room_charges(room_type,base_rate,checkin_date,checkout_date,guests,completed_stays,want_breakfast)
         print(bill)
-        last_id = insert_booking(mobile, room_number, checkin_date, checkout_date, guests)
+        last_id = insert_booking(mobile, room_number, checkin_date, checkout_date, guests,room_type,bill["final_amount"])
 
         booking_id = f"BK{last_id:04d}"
         print("Booking successful!")
@@ -247,17 +264,16 @@ while True:
         booking_id=input("Enter booking id:")
         check_out(booking_id)
     elif choice=="5":
-        booking_id=input("Enter booking id:")
-        cancel_bookings(booking_id)
+        cancel_bookings()
     elif choice=="6":
-        booking_details(booking_id_no,room_number,checkin_date,checkout_date)
+        booking_details(booking_id,room_number,checkin_date,checkout_date)
     elif choice=="7":
         mobile=input("Enter the mobile number that user registered with:")
         guest_history(mobile)
     elif choice=="8":
-        pass
+        occupancy_report()
     elif choice=="9":
-        pass
+        revenue_report()
     elif choice=="10":
         pass
     elif choice=="11":
