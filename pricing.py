@@ -63,5 +63,6 @@ class Pricing:
             "discounted_room_charge":discounted_room_charge,
             "gst_rate":gst_rate*100,
             "gst_amount":gst_amount,
-            "final_amount":final_amount
+            "final_amount":final_amount,
+            "breakfast_charge":breakfast_charges
         }

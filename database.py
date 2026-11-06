@@ -165,7 +165,7 @@ def check_out_update(booking_id):
     if cursor.rowcount == 0:
         print("Invalid Booking ID.")
     else:
-        print("Check-in successful!")
+        print("Check-out successful!")
 def cancel_booking(booking_id):
     cursor.execute(
         """UPDATE BOOKINGS

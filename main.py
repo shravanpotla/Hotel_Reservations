@@ -134,10 +134,11 @@ def check_in(booking_id):
     check_in_update(booking_id)
 def check_out(booking_id):
     status=check_out_data(booking_id)
+    print(status)
     if not status:
         print("No bookings for this booking id.")
         return
-    if status[0]!="CHECKED-IN":
+    if status[0]!="CHECKED_IN":
         print("Please book rooms for confirmation.")
         return
     check_out_update(booking_id)
@@ -181,7 +182,7 @@ def booking():
         print(error)
     except ValueError as error:
         print(error)
-    return (room_no, check_in_date, check_out_date, room_type, guests, registered_guest.mobile)
+    return (room_no, check_in_date, check_out_date, room_type, guests, registered_guest.mobile,registered_guest.name,registered_guest.email)
 def cancel_bookings():
     booking_id=int(input("Enter booking id:"))
     status=check_in_data(booking_id)
@@ -210,10 +211,47 @@ def occupancy_report():
        
 def revenue_report():
     report_service.revenue_report()
-def export_data(booking_id):
-    filename=f"{booking_id}.txt"
+def export_data(booking_id,guest_name,mobile,email,room_no,room_type,checkin,checkout,bill):
+    filename=f"invoices/{booking_id}.txt"
     with open(filename,"w") as file:
-        file.write()
+        file.write(f"Booking ID:{booking_id}\n")
+        file.write(f"Guest Name:{guest_name}\n")
+        file.write(f"Mobile number:{mobile}\n")
+        file.write(f"Email:{email}\n")
+        file.write(f"Room Number{room_no}\n")
+        file.write(f"Room Type:{room_type}\n")
+        file.write(f"Check-in:{checkin}\n")
+        file.write(f"Check-out:{checkout}\n")
+        file.write(f"Total Nights: {bill['no_of_nights']}\n\n")
+        file.write(f"\nRoom Charges: Rs. {bill['room_charge']:.2f}\n")
+        file.write(f"Extra Guest Charges: Rs. {bill['extra_guest_charge']:.2f}\n")
+        file.write(f"Breakfast Charges: Rs. {bill['breakfast_charge']:.2f}\n")
+        file.write(f"Long Stay Discount: Rs. {bill['long_stay_discount']:.2f}\n")
+        file.write(f"Loyalty Discount: Rs. {bill['loyalty_discount']:.2f}\n")
+        file.write(f"GST: Rs. {bill['gst_amount']:.2f}\n")
+
+
+
+        # "no_of_nights":nights,
+                    # "room_charge":total_room_charge,
+                    # "extra_guest_charge":extra_guest_charges,
+                    # "total_room_charge":total_room_charge,
+                    # "long_stay_discount":long_stay_discount,
+                    # "loyalty_discount":loyalty_discount,
+                    # "total_discount":total_discount,
+                    # "discounted_room_charge":discounted_room_charge,
+                    # "gst_rate":gst_rate*100,
+                    # "gst_amount":gst_amount,
+                    # "final_amount":final_amount
+booking_id = None
+guest_name = None
+mobile = None
+email = None
+room_number = None
+room_type = None
+checkin_date = None
+checkout_date = None
+bill = None
 while True:
     print("""
             1.search availability
@@ -235,28 +273,26 @@ while True:
     elif choice=="2":
         result=booking()
         if result is not None:
-            room_number,checkin_date,checkout_date,room_type,guests,mobile=result
-            print("Check-in:", checkin_date, type(checkin_date))
-            print("Check-out:", checkout_date, type(checkout_date))
+            room_number,checkin_date,checkout_date,room_type,guests,mobile,guest_name,email=result
             completed_stays=Number_of_visits(mobile)
             want_breakfast=False
             if room_type=="standard":
-                base_rate=2000
+                base_rate=2500
                 breakfast=input("Enter yes for breakfast or no:").lower()
                 if breakfast=="yes":
                     want_breakfast=True
-        elif room_type=="deluxe":
-            base_rate=4000
-        else:
-            base_rate=7500
-        pricing=Pricing()
-        bill=pricing.calculate_room_charges(room_type,base_rate,checkin_date,checkout_date,guests,completed_stays,want_breakfast)
-        print(bill)
-        last_id = insert_booking(mobile, room_number, checkin_date, checkout_date, guests,room_type,bill["final_amount"])
+            elif room_type=="deluxe":
+                base_rate=4000
+            else:
+                base_rate=7500
+            pricing=Pricing()
+            bill=pricing.calculate_room_charges(room_type,base_rate,checkin_date,checkout_date,guests,completed_stays,want_breakfast)
+            print(bill)
+            last_id = insert_booking(mobile, room_number, checkin_date, checkout_date, guests,room_type,bill["final_amount"])
 
-        booking_id = f"BK{last_id:04d}"
-        print("Booking successful!")
-        print("Booking ID:", booking_id)
+            booking_id = f"BK{last_id:04d}"
+            print("Booking successful!")
+            print("Booking ID:", booking_id)
     elif choice=="3":
         booking_id=input("Enter booking id:")
         check_in(booking_id)
@@ -275,7 +311,9 @@ while True:
     elif choice=="9":
         revenue_report()
     elif choice=="10":
-        pass
+        booking_id=input("Enter booking id:")
+        export_data(booking_id,guest_name,mobile,email,room_number,room_type,checkin_date,checkout_date,bill)
+        # booking_id,guest_name,mobile,email,room_no,room_type,checkin,checkout,bill
     elif choice=="11":
         print("Thank you!" \
               "visit again..")
