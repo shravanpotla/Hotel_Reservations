@@ -229,20 +229,6 @@ def export_data(booking_id,guest_name,mobile,email,room_no,room_type,checkin,che
         file.write(f"Long Stay Discount: Rs. {bill['long_stay_discount']:.2f}\n")
         file.write(f"Loyalty Discount: Rs. {bill['loyalty_discount']:.2f}\n")
         file.write(f"GST: Rs. {bill['gst_amount']:.2f}\n")
-
-
-
-        # "no_of_nights":nights,
-                    # "room_charge":total_room_charge,
-                    # "extra_guest_charge":extra_guest_charges,
-                    # "total_room_charge":total_room_charge,
-                    # "long_stay_discount":long_stay_discount,
-                    # "loyalty_discount":loyalty_discount,
-                    # "total_discount":total_discount,
-                    # "discounted_room_charge":discounted_room_charge,
-                    # "gst_rate":gst_rate*100,
-                    # "gst_amount":gst_amount,
-                    # "final_amount":final_amount
 booking_id = None
 guest_name = None
 mobile = None

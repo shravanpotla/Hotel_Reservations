@@ -70,17 +70,17 @@ def Availability(room_type, check_in=None, check_out=None):
         """, (room_type,))
     else:
         cursor.execute("""
-            SELECT COUNT(room_no)
-            FROM ROOMS
-            WHERE LOWER(room_type)=LOWER(?)
+            SELECT COUNT(room_no) 
+            FROM ROOMS 
+            WHERE LOWER(ROOMS.room_type)=LOWER(?)
             AND Available=1
-            AND NOT EXISTS (
-                SELECT 1
-                FROM BOOKINGS
-                WHERE BOOKINGS.Room_No=ROOMS.room_no
-                AND BOOKINGS.Status IN ('CONFIRMED', 'CHECKED_IN')
-                AND BOOKINGS.Check_In < ?
-                AND BOOKINGS.Check_Out > ?
+            AND NOT EXISTS(
+                SELECT 1 
+                FROM BOOKING 
+                WHERE (ROOMS.room_no)=(BOOKINGS.Room_No)
+                AND BOOKINGS.Status IN("CHECKED_IN","CONFIRMED")
+                AND Check_In<?
+                AND Check_Out>?)
             )
         """, (room_type, check_out, check_in))
     return cursor.fetchone()[0]
@@ -116,7 +116,7 @@ def insert_booking(mobile, room_no, check_in, check_out, guests,room_type,final_
         """, (mobile, room_no, check_in, check_out, guests,room_type,final_amount))
         
         conn.commit()
-
+ 
         return cursor.lastrowid
     except Exception:
         conn.rollback()
