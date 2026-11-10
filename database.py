@@ -76,12 +76,11 @@ def Availability(room_type, check_in=None, check_out=None):
             AND Available=1
             AND NOT EXISTS(
                 SELECT 1 
-                FROM BOOKING 
+                FROM BOOKINGS
                 WHERE (ROOMS.room_no)=(BOOKINGS.Room_No)
                 AND BOOKINGS.Status IN("CHECKED_IN","CONFIRMED")
                 AND Check_In<?
                 AND Check_Out>?)
-            )
         """, (room_type, check_out, check_in))
     return cursor.fetchone()[0]
 def allocate_room(room_type, check_in, check_out):
@@ -166,6 +165,14 @@ def check_out_update(booking_id):
         print("Invalid Booking ID.")
     else:
         print("Check-out successful!")
+def get_booking_details(booking_id):
+    cursor.execute(
+        """SELECT Check_In, Final_Amount, Status
+        FROM BOOKINGS
+        WHERE Booking_ID=?""",
+        (booking_id,)
+    )
+    return cursor.fetchone()
 def cancel_booking(booking_id):
     cursor.execute(
         """UPDATE BOOKINGS
@@ -173,9 +180,8 @@ def cancel_booking(booking_id):
         WHERE Booking_ID=? AND Status=?""",
         ("CANCELLED", booking_id, "CONFIRMED")
     )
-    cursor
     conn.commit()
-    return
+    return cursor.rowcount
 def Number_of_visits(mobile):
     cursor.execute(
         """SELECT Visits FROM CUSTOMERS WHERE Mobile=?""",(mobile,)

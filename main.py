@@ -2,11 +2,11 @@ from database import create_tables, insert_customer, create_booking_table,check_
 from database import insert_room,Availability,cancel_booking,Number_of_visits
 from pricing import Pricing
 from exceptions import room_Unavailable
-from database import allocate_room, insert_booking,guest_history
+from database import allocate_room, insert_booking,guest_history,get_booking_details
 from datetime import datetime
 from reports import ReportService
 report_service = ReportService()
-from models import StandardRoom, DeluxeRoom, SuiteRoom,Guest,Bookings
+from models import StandardRoom,DeluxeRoom,SuiteRoom,Guest,Bookings
 import csv
 import re
 create_tables()
@@ -21,7 +21,7 @@ def check_dates(room_type):
                 check_in_date = datetime.strptime(check_in_date, "%d-%m-%Y").date()
                 break
             except ValueError:
-                print("Invalid date format. Enter DD-MM-YYYY.")
+                print("Invalid date format.Enter DD-MM-YYYY.")
         while True:
             check_out_date = input("Enter Check-out date (DD-MM-YYYY): ")
             try:
@@ -184,16 +184,33 @@ def booking():
         print(error)
     return (room_no, check_in_date, check_out_date, room_type, guests, registered_guest.mobile,registered_guest.name,registered_guest.email)
 def cancel_bookings():
-    booking_id=int(input("Enter booking id:"))
-    status=check_in_data(booking_id)
-    if not status:
-        print("status cannot be None.")
+    booking_id = input("Enter booking ID: ")
+    details = get_booking_details(booking_id)
+    if details is None:
+        print("Booking not found.")
         return
-    if status[0]!="CONFIRMED":
-        print("Cannot cancel after check-in or check-out.")
+    check_in, final_amount, status = details
+    if status != "CONFIRMED":
+        print("Cannot cancel this booking.")
         return
-    Status="CANCEL"
-    cancel_booking(Status)
+    check_in = datetime.strptime(check_in, "%Y-%m-%d").date()
+    today = datetime.now().date()
+    days = (check_in - today).days
+    if days >= 7:
+        refund_percentage = 100
+    elif days >= 2:
+        refund_percentage = 50
+    else:
+        refund_percentage = 0
+    refund_amount = final_amount * refund_percentage / 100
+    updated = cancel_booking(booking_id)
+    if updated:
+        print("Booking cancelled successfully.")
+        print("Original amount:", final_amount)
+        print("Refund percentage:", refund_percentage, "%")
+        print("Refund amount: Rs.", refund_amount)
+    else:
+        print("Booking cancellation failed.")
 def booking_details(booking_id_no,room_number,checkin_date,checkout_date):
     print("Booking Id:",booking_id_no)
     print("Room Number:",room_number)
@@ -299,7 +316,6 @@ while True:
     elif choice=="10":
         booking_id=input("Enter booking id:")
         export_data(booking_id,guest_name,mobile,email,room_number,room_type,checkin_date,checkout_date,bill)
-        # booking_id,guest_name,mobile,email,room_no,room_type,checkin,checkout,bill
     elif choice=="11":
         print("Thank you!" \
               "visit again..")

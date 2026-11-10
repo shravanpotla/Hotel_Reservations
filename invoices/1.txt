@@ -1,0 +1,17 @@
+Booking ID:1
+Guest Name:shravan
+Mobile number:8019718375
+Email:s@gmail.com
+Room Number101
+Room Type:standard
+Check-in:2026-11-10
+Check-out:2026-11-12
+Total Nights: 2
+
+
+Room Charges: Rs. 6400.00
+Extra Guest Charges: Rs. 0.00
+Breakfast Charges: Rs. 1400.00
+Long Stay Discount: Rs. 0.00
+Loyalty Discount: Rs. 320.00
+GST: Rs. 729.60
